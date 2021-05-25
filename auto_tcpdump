@@ -1,0 +1,169 @@
+package main
+
+import (
+	"bufio"
+	"flag"
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"os"
+	"os/exec"
+	"strconv"
+
+	"strings"
+	"time"
+)
+
+func Pdate() string {
+	Data := time.Now().Format("20060102")
+	return Data
+}
+
+func PFlag() (string, string, string, string) {
+	var (
+		vip       string
+		vport     string
+		packnum   string
+		shortTime string
+	)
+
+	flag.StringVar(&vip, "vip", "", "input vip address")
+	flag.StringVar(&vport, "vport", "", "input vport info")
+	flag.StringVar(&packnum, "packnum", "", "input package number")
+	flag.StringVar(&shortTime, "shortTime", "60", "sleep period")
+
+	flag.Parse()
+
+	flag.Usage = func() {
+		flag.PrintDefaults()
+	}
+
+	if vip == "" && vport == "" && packnum == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
+	return vip, vport, packnum, shortTime
+}
+
+func FileIsExists(filename string) bool {
+	_, err := os.Stat(filename)
+	if err == nil {
+		return true
+	} else if os.IsNotExist(err) {
+		return false
+	} else {
+		panic(err)
+		return false
+	}
+}
+
+func Get_eth0_ip() string {
+
+	cmd := exec.Command("sh", "-c", `ifconfig eth0 |grep "inet"|awk -F: '{print $2}'|awk  '{print $1}'`)
+	stdoutStderr, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatal(err)
+	}
+	eth0_ip := strings.Replace(string(stdoutStderr), "\n", "", -1)
+	return eth0_ip
+
+}
+
+func Getip() map[string]string {
+	Ips := make(map[string]string)
+
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+
+	for _, i := range interfaces {
+		byName, err := net.InterfaceByName(i.Name)
+		if err != nil {
+			return nil
+		}
+		addresses, err := byName.Addrs()
+		for _, v := range addresses {
+			Ips[byName.Name] = v.String()
+		}
+	}
+	return Ips
+}
+
+func StringFileds(Nic_name string) string {
+	var Ip []string
+	Nic_name = Getip()[Nic_name]
+	Ip = strings.Split(Nic_name, "/")
+	return Ip[0]
+}
+
+func goGetpacket(vip, vport, packnum, filename string, setdate time.Duration) {
+
+	status := FileIsExists(filename)
+	if status != true {
+		outfile, _ := os.Create(filename)
+		cmd := exec.Command("tcpdump", "-nn", "-c", packnum, "-i", "any", "tcp[13] = 2", `and dst host `, vip, `and dst port`, vport, `and not host`, string(Get_eth0_ip()), `and not host`, StringFileds("eth2"))
+		stdoutPipe, err := cmd.StdoutPipe()
+		writer := bufio.NewWriter(outfile)
+		writer.Flush()
+		err = cmd.Start()
+		//start := time.Now()
+		//fmt.Println(cmd.Process.Pid)
+		if err != nil {
+			log.Fatal(err)
+		}
+		go io.Copy(writer, stdoutPipe)
+		//fmt.Println(cmd.Process.Pid)
+		time.AfterFunc(setdate, func() { cmd.Process.Kill() })
+		cmd.Wait()
+		
+		//fmt.Printf("pid=%d duration=%s err=%v\n", cmd.Process.Pid, time.Since(start), err)
+		
+		//fmt.Println("The data is empty and the program has timed out")
+	} else {
+		os.Remove(filename)
+		outfile, _ := os.Create(filename)
+		cmd := exec.Command("tcpdump", "-nn", "-c", packnum, "-i", "any", "tcp[13] = 2", `and dst host `, vip, `and dst port`, vport, `and not host`, string(Get_eth0_ip()), `and not host`, StringFileds("eth2"))
+		//fmt.Println(cmd)
+		stdoutPipe, err := cmd.StdoutPipe()
+		writer := bufio.NewWriter(outfile)
+		writer.Flush()
+		err = cmd.Start()
+		//start := time.Now()
+		if err != nil {
+			log.Fatal(err)
+		}
+		go io.Copy(writer, stdoutPipe)
+		//fmt.Println(cmd.Process.Pid)
+		time.AfterFunc(setdate, func() { cmd.Process.Kill() })
+		//fmt.Printf("pid=%d duration=%s err=%v\n", cmd.Process.Pid, time.Since(start), err)
+
+		cmd.Wait()
+		//fmt.Println("[0]The data is empty and the program has timed out")
+
+	}
+
+}
+
+func get_sip(filename string) {
+	cmd_fenxi := exec.Command("bash", "-c", "cat  tmpFile | awk '{print $3,$4,$5}'|awk -F '>' '{print $1}'|awk -F. '{print $1,$2,$3,$4}'|sed 's/ /./g'|sort|uniq -c|sort -n")
+	stdoutStderr, err := cmd_fenxi.CombinedOutput()
+	if err != nil {
+		log.Fatal(err)
+	}
+	s_list := string(stdoutStderr)
+	//fmt.Println(strings.Replace(s_list, " ", "", -1))
+	fmt.Println(s_list)
+}
+
+func main() {
+	filename := "tmpFile"
+	vip, vport, packnum, shortTime := PFlag()
+	shortTime_tmp, _ := strconv.Atoi(shortTime)
+	setdate := time.Duration(time.Duration(shortTime_tmp) * time.Second)
+	goGetpacket(vip, vport, packnum, filename, setdate)
+	get_sip(filename)
+
+}
+
