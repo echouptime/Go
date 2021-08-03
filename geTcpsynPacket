@@ -1,0 +1,114 @@
+package main
+
+import (
+        "bufio"
+        "flag"
+        "fmt"
+        "sort"
+
+        //"io"
+        "log"
+        "os"
+        "os/exec"
+        "strconv"
+        "time"
+)
+
+func FileIsExists(path string) bool {
+        _, err := os.Stat(path)
+        if err == nil {
+                return true
+        } else if os.IsNotExist(err) {
+                fmt.Println("tshark command does not exist.Please install | yum -q install -y wireshark libpcap")
+                os.Exit(0)
+                return false
+        } else {
+                panic(err)
+                return false
+        }
+}
+
+func removeDuplicateElement(languages []string) []string {
+        result := make([]string, 0, len(languages))
+        temp := map[string]struct{}{}
+        for _, item := range languages {
+                if _, ok := temp[item]; !ok {
+                        temp[item] = struct{}{}
+                        result = append(result, item)
+                }
+        }
+        return result
+}
+
+func Pdate() string {
+        Data := time.Now().Format("20060102")
+        return Data
+}
+
+func PFlag() (string, string, string, string) {
+        var (
+                vip       string
+                vport     string
+                packnum   string
+                shortTime string
+        )
+
+        flag.StringVar(&vip, "vip", "", "input vip address")
+        flag.StringVar(&vport, "vport", "", "input vport info")
+        flag.StringVar(&packnum, "packnum", "", "input package number")
+        flag.StringVar(&shortTime, "shortTime", "60", "sleep period")
+
+        flag.Parse()
+
+        flag.Usage = func() {
+                flag.PrintDefaults()
+        }
+
+        if vip == "" && vport == "" && packnum == "" {
+                flag.Usage()
+                os.Exit(1)
+        }
+        return vip, vport, packnum, shortTime
+}
+
+func goGetpacket(vip, vport, packnum string, setdate time.Duration) {
+
+        filter := "dst host " + vip + " and dst port " + vport + " and tcp[13] = 2"
+        // cmd := exec.Command("/usr/sbin/tshark", "-i", "any", "-n", "-c", packnum, "-T", "fields", "-e", "ip.src", "-f", filter)
+        cmd := exec.Command("/usr/sbin/tshark", "-i", "any", "-n", "-c", packnum, "-T", "fields", "-e", "ip.src", "-f", filter)
+        //fmt.Println(cmd)
+
+        //fmt.Println("in")
+        stdoutPipe, err := cmd.StdoutPipe()
+        if err != nil {
+                log.Fatal(err)
+        }
+
+        var list []string
+        scanner := bufio.NewScanner(stdoutPipe)
+        go func() {
+                for scanner.Scan() {
+                        list = append(list, scanner.Text())
+                        sort.Strings(list)
+                }
+        }()
+
+        cmd.Start()
+        //start := time.Now()
+        time.AfterFunc(setdate, func() { cmd.Process.Kill() })
+        cmd.Wait()
+        uniq_list := removeDuplicateElement(list)
+        for _, v := range uniq_list {
+                fmt.Println(v)
+        }
+
+}
+
+func main() {
+        FileIsExists("/usr/sbin/tshark")
+        vip, vport, packnum, shortTime := PFlag()
+        shortTime_tmp, _ := strconv.Atoi(shortTime)
+        setdate := time.Duration(time.Duration(shortTime_tmp) * time.Second)
+        goGetpacket(vip, vport, packnum, setdate)
+
+}
