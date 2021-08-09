@@ -1,0 +1,60 @@
+package main
+
+import (
+	"fmt"
+	"sort"
+)
+
+//定义结构体
+type User struct {
+	Id int
+	Name string
+	Phone string
+}
+
+//结构体切片
+type Users []User
+
+
+func (u User) String() string {
+	return fmt.Sprintf("Id:[%d]  Name:[%s]  Phone:[%s]\n",u.Id,u.Name,u.Phone)
+}
+
+//长度
+func (u Users) Len() int {
+	return len(u)
+}
+
+//判断大小
+func (u Users) Less(i,j int) bool {
+	return u[i].Id < u[j].Id
+}
+
+//交换数据
+func (u Users) Swap(i,j int) {
+	u[i],u[j] = u[j],u[i]
+}
+
+
+func main() {
+
+	var users Users = Users([]User{
+		{Id: 10,Name: "t1",Phone: "10086"},
+		{Id: 20,Name: "t2",Phone: "10096"},
+		{Id: 30,Name: "t3",Phone: "10076"},
+		{Id: 19,Name: "t4",Phone: "10066"},
+		{Id: 9,Name: "t5",Phone: "10056"},
+		{Id: 13,Name: "t6",Phone: "10046"},
+	})
+
+
+	//fmt.Printf("%T\n",users)
+
+	sort.Sort(users)
+	//报告数据是否已经排序
+	fmt.Println(sort.IsSorted(users))
+
+	fmt.Println(users)
+
+
+}
