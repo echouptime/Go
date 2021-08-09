@@ -1,0 +1,57 @@
+package main
+
+import (
+	"fmt"
+	"sort"
+)
+
+type Mapnode struct {
+	Key int
+	Vaule interface{}
+}
+
+//定义Map
+//type Map map[int]string
+
+//定义Map类型
+type Map []Mapnode
+
+func (m Map) Len() int {
+	return len(m)
+}
+
+func (m Map) Less(i,j int) bool {
+	return m[i].Key < m[j].Key
+}
+
+func (m Map) Swap(i,j int)  {
+	m[i].Key,m[j].Key = m[j].Key,m[i].Key
+}
+
+func (m Mapnode) String() string{
+	//return  fmt.Sprintf("Key:[%d] ",m.Key)
+	return  fmt.Sprintf("Key:[%d] Vaule:[%#v]\n",m.Key,m.Vaule)
+}
+
+
+func main()  {
+
+	var m Map = Map([]Mapnode{
+		{Key: 3,Vaule: "192.168.1.1"},
+		{Key: 2,Vaule: "192.168.1.1"},
+		{Key: 5,Vaule: "192.168.1.1"},
+		{Key: 10,Vaule: "192.168.1.1"},
+		{Key: 7,Vaule: "192.168.1.1"},
+	})
+	fmt.Println("排序前")
+	fmt.Println(m)
+
+	sort.Sort(m)
+	//是否排序
+	fmt.Println(sort.IsSorted(m))
+	fmt.Println("排序后")
+
+	fmt.Println(m)
+
+
+}
