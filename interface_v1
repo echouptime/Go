@@ -1,0 +1,50 @@
+package main
+
+import (
+	"fmt"
+)
+
+var doubo_Alarm []string
+
+//定义接口-功能实现：发送报警
+
+type Sender interface {
+	Send(string) (int, error)
+	SendAll([]string) (int, error)
+}
+
+type TuituiAlarm struct {
+	User     []string
+	AlarmUrl string
+}
+
+//实现接口方法-单一报警
+func (t TuituiAlarm) Send(msg string) (int, error) {
+
+	fmt.Printf("Src server:[%s], Alarm to [%s], msg [%s]\n", t.AlarmUrl, t.User, msg)
+	return 0, nil
+
+}
+
+//实现接口方法-多人报警
+func (t TuituiAlarm) SendAll(msg []string) (int, error) {
+
+	fmt.Printf("Src server:[%s], Alarm to [%s], msg [%s]\n", t.AlarmUrl, t.User, msg)
+	return 0, nil
+
+}
+
+func main() {
+
+	// 接口方法:
+
+	var t TuituiAlarm
+	t = TuituiAlarm{AlarmUrl: "http://tuitui.com", User: []string{"yangxu", "zhangsan"}}
+	//单一消息接口
+	t.Send("eth0 nic up")
+
+	//组报警接口
+	doubo_Alarm = append(doubo_Alarm, "eth0 nic down", "eth1 nic down", "file server down")
+	t.SendAll(doubo_Alarm)
+
+}
