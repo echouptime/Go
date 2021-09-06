@@ -1,0 +1,95 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"net"
+	"os"
+	"strconv"
+	"strings"
+)
+
+var (
+	C_Addr string = "127.0.0.1:8000"
+	C_Protocol string = "tcp"
+)
+
+func C_write(conn net.Conn ,txt string) error  {
+	length := len(txt)
+	_ ,err := conn.Write([]byte(fmt.Sprintf("%05d",length)))
+	if err != nil {
+		return  err
+	}
+	_ ,err = conn.Write([]byte(txt))
+	if err != nil {
+		return  err
+	}
+	return nil
+}
+
+func C_read(conn net.Conn) (string,error)  {
+	lengthBytes := make([]byte,5)
+	_,err := conn.Read(lengthBytes)
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+	length ,err := strconv.Atoi(string(lengthBytes))
+	ctx := make([]byte,length)
+	_ , err = conn.Read(ctx)
+	if err != nil {
+		fmt.Println("Read Server data fail")
+		return "",err
+	}
+	return string(ctx),nil
+}
+
+func C_Input(prompt string)  string {
+	fmt.Print(prompt)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	return strings.TrimSpace(scanner.Text())
+}
+
+
+func Client() {
+	conn ,err := net.Dial(C_Protocol,C_Addr)
+	if err !=nil {
+		fmt.Println("Conn server fail")
+	}else {
+		//客户端先给服务器端发数据
+		for {
+			txt := C_Input("请输入信息: ")
+			if txt == "exit" {
+				break
+			}
+			err := C_write(conn,txt)
+			if err != nil {
+				if err != io.EOF {
+					fmt.Println(err)
+				}
+				break
+
+			}
+			//读取服务端数据
+			info ,err := C_read(conn)
+			if err != nil {
+				if err != io.EOF {
+					fmt.Println(err)
+				}
+				break
+
+			}
+			fmt.Printf("服务器端回应: [%s]\n",info)
+			fmt.Printf("客户端端请求日志:  RemoteAddr: [%s] LocalAddr: [%s]\n ",conn.RemoteAddr(),conn.LocalAddr())
+		}
+	}
+	defer  conn.Close()
+
+}
+
+
+func main()  {
+	Client()
+}
