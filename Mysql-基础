@@ -1,0 +1,242 @@
+#创建库
+create database todolist default charset utf8mb4;
+#查询库
+show databases;
+#删除-线上慎用
+drop database name
+#查看创建库具体命令
+show create database todolist;
+
+#创建索引
+create index name on table(column)
+#创建唯一索引
+create uniqe index name on table(column)
+#删除索引
+drop index name on table(column)
+
+#查看创建表的原始Sql
+show create table task ;
+
+#创建表
+create table task (
+	id bigint primary key auto_increment, 
+	name varchar(64) not null default '' comment '任务名称',
+	status int not null default 0 comment '状态，0:新建，1:正在执行,2:停止,3:完成' ,
+	start_time datetime comment '开始时间',
+	complete_time datetime comment '完成时间',
+	deadline_time datetime not null comment '截止时间',
+	comtent text comment '任务详情',
+	index idx_name(name),
+	index idx_deadline_time(deadline_time)
+	) engine=innodb default charset utf8mb4 auto_increment 1000;
+  
+#添加列
+alter table task add column user bigint;
+
+#插入数据
+insert into task(name,status,deadline_time,content)values("写作业",1,"2021-10-27","完成作业");
+
+
+#创建表
+create table accesslog(
+	id bigint primary key auto_increment, 
+	logtime datetime not null comment '访问时间',
+	ip varchar(128) not null default '' comment '访问来源',
+	url varchar(4096) not null default '' comment '访问地址',
+	status int not null default 0 comment '访问状态'
+	)engine=innodb default charset utf8mb4;
+	
+#多行插入数据
+insert into accesslog (logtime,ip,url,status) values 
+('2021-10-26','192.168.2.1','http://www.html.com',200),
+("2021-10-27","192.168.2.1","http://www.baidu.com",206),
+("2021-10-27","192.168.1.1","http://www.taobao.com",301),
+("2021-10-26","192.168.1.1","http://www.html.com",206),
+("2021-10-25","192.168.3.1","http://www.html.com",200);
+
+#修改表
+#添加列
+alter table task add column content text not null comment '任务内容';
+#删除列[线上禁止操作]
+alter table task drop column comtent;
+#修改列
+alter table task modify column colname coltype comtent;
+
+#删除表
+delete from table where name="xxx"
+
+#改表数据
+update task set status=0 where id="1000";
+
+查询数据
+#查找所有表数据,展示10条
+select * from task limit 10;
+
+#查找表中部分字段数据
+select name,status,deadline_time from task;
+
+#查找表中字段中符合条件的数据
+select name,status,deadline_time from task where name="写作业";
+
+#统计表数据条数
+select count(*) from task;
+
+
+#内置函数
+#日期Format
+select date_format(now(),"%Y-%m-%d");
+select md5('fasfasdfasdf');
+select now();
+
+mysql> select date_format(logtime,"%Y-%m-%d") as log_day,count(*) from accesslog group by log_day;
++------------+----------+
+| log_day    | count(*) |
++------------+----------+
+| 2021-10-25 |        1 |
+| 2021-10-26 |        2 |
+| 2021-10-27 |        2 |
++------------+----------+
+
+#联合升序/降序
+mysql> select date_format(logtime,"%Y-%m-%d") as log_day,count(*) from accesslog group by log_day order by log_day desc;
++------------+----------+
+| log_day    | count(*) |
++------------+----------+
+| 2021-10-27 |        2 |
+| 2021-10-26 |        2 |
+| 2021-10-25 |        1 |
++------------+----------+
+
+
+
+mysql> select date_format(logtime,"%Y-%m-%d") as log_day,count(*) from accesslog group by log_day;
++------------+----------+
+| log_day    | count(*) |
++------------+----------+
+| 2021-10-25 |        1 |
+| 2021-10-26 |        2 |
+| 2021-10-27 |        2 |
++------------+----------+
+
+#联合升序/降序
+mysql> select date_format(logtime,"%Y-%m-%d") as log_day,count(*) from accesslog group by log_day order by log_day desc;
++------------+----------+
+| log_day    | count(*) |
++------------+----------+
+| 2021-10-27 |        2 |
+| 2021-10-26 |        2 |
+| 2021-10-25 |        1 |
++------------+----------+
+
+
+#排序
+
+select * from task order by deadline_time desc; #降序
+select * from task order by deadline_time asc;  #升序
+
+#多字段排序
+select * from task order by deadline_time and status desc;
+
+#分页
+select * from task limit 2 offset 4;
+
+#分组
+select status,count(*) from task group by status;
+
+
+#求和(sum)
+mysql> select name,sum(score) from score group by name;
++--------+------------+
+| name   | sum(score) |
++--------+------------+
+| 二哈   |        264 |
+| 张三   |        309 |
+| 李四   |        268 |
+| 王五   |        353 |
++--------+------------+
+#最小值(min)
+mysql> select name,min(score) from score group by name;
++--------+------------+
+| name   | min(score) |
++--------+------------+
+| 二哈   |         55 |
+| 张三   |         70 |
+| 李四   |         60 |
+| 王五   |         80 |
++--------+------------+
+#最大值(max)
+mysql> select name,max(score) from score group by name;
++--------+------------+
+| name   | max(score) |
++--------+------------+
+| 二哈   |         89 |
+| 张三   |         80 |
+| 李四   |         70 |
+| 王五   |         93 |
++--------+------------+
+#平均值(avg)
+mysql> select name,avg(score) from score group by name;
++--------+------------+
+| name   | avg(score) |
++--------+------------+
+| 二哈   |         66 |
+| 张三   |      77.25 |
+| 李四   |         67 |
+| 王五   |      88.25 |
++--------+------------+
+
+
+
+################################################################################################################################################################################
+#创建表
+create table accesslog(
+	id bigint primary key auto_increment, 
+	logtime datetime not null comment '访问时间',
+	ip varchar(128) not null default '' comment '访问来源',
+	url varchar(4096) not null default '' comment '访问地址',
+	status int not null default 0 comment '访问状态'
+	)engine=innodb default charset utf8mb4;
+	
+#插入数据
+insert into accesslog (logtime,ip,url,status) values 
+('2021-10-26','192.168.2.1','http://www.html.com',200),
+("2021-10-27","192.168.2.1","http://www.baidu.com",206),
+("2021-10-27","192.168.1.1","http://www.taobao.com",301),
+("2021-10-26","192.168.1.1","http://www.html.com",206),
+("2021-10-25","192.168.3.1","http://www.html.com",200);
+
+#统计状态码出现的次数
+select status,count(*) from accesslog group by status;
++--------+----------+
+| status | count(*) |
++--------+----------+
+|    200 |        2 |
+|    206 |        2 |
+|    301 |        1 |
++--------+----------+
+
+#IP出现次数
+select ip,count(*) from accesslog group by ip;
++-------------+----------+
+| ip          | count(*) |
++-------------+----------+
+| 192.168.1.1 |        2 |
+| 192.168.2.1 |        2 |
+| 192.168.3.1 |        1 |
++-------------+----------+
+
+#多column
+select url,status,count(*) from accesslog group by url,status;
++-----------------------+--------+----------+
+| url                   | status | count(*) |
++-----------------------+--------+----------+
+| http://www.baidu.com  |    206 |        1 |
+| http://www.html.com   |    200 |        2 |
+| http://www.html.com   |    206 |        1 |
+| http://www.taobao.com |    301 |        1 |
++-----------------------+--------+----------+
+############################################################################################################################################################################
+
+#联查
+select * from task left join user on task.user=user.id;
+select user.name,task.name from task left join user on task.user=user.id where task.status !=3;
